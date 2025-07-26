@@ -16,5 +16,4 @@ export async function apply(ctx: Context, config: Config) {
         const tarot_manager = new Tarot(config);
         return await tarot_manager.onetime_divine();
     });
-    // 抽多张塔罗牌
 }

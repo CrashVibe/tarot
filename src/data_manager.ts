@@ -2,7 +2,7 @@ import path from "path";
 import { Config } from ".";
 import * as fs from "fs/promises";
 import tarot_json from "./tarot.json";
-import { h, Element } from "koishi";
+import { h } from "koishi";
 
 // 类型定义
 interface CardInfo {
@@ -35,16 +35,16 @@ export default class Tarot {
         this.is_chain_reply = config.is_chain_reply;
     }
 
-    async onetime_divine(): Promise<Element> {
+    async onetime_divine() {
         const theme = await this.pick_theme();
         const allCards = tarot_json.cards;
         const [cardInfo] = await this.random_cards(allCards, theme, 1);
         const body = await this.get_text_and_image(theme, cardInfo);
 
-        return <>回应是{body}</>;
+        return "回应是" + body;
     }
 
-    private async get_text_and_image(theme: string, cardInfo: CardInfo): Promise<Element> {
+    private async get_text_and_image(theme: string, cardInfo: CardInfo) {
         const { type, pic, name_cn, meaning } = cardInfo;
 
         if (!type || !pic || !name_cn || !meaning?.up || !meaning?.down) {
@@ -65,10 +65,8 @@ export default class Tarot {
         const position = isReversed ? "逆位" : "正位";
 
         return (
-            <>
-                {h.text(`「${name_cn}${position}」「${meaningText}」\n`)}
-                {h.image("data:image/png;base64," + imgBuffer.toString("base64"))}
-            </>
+            `「${name_cn}${position}」「${meaningText}」\n` +
+            h.image("data:image/png;base64," + imgBuffer.toString("base64"))
         );
     }
 
