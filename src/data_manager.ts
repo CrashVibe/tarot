@@ -2,8 +2,8 @@ import path from "path";
 import { Config } from ".";
 import * as fs from "fs/promises";
 import tarot_json from "./tarot.json";
-import { h } from "koishi";
-
+import { h, Random, Session } from "koishi";
+import {} from "koishi-plugin-adapter-onebot";
 // 类型定义
 interface CardInfo {
     type: string;
@@ -35,6 +35,53 @@ export default class Tarot {
         this.is_chain_reply = config.is_chain_reply;
     }
 
+    async divine(session: Session) {
+        const theme = await this.pick_theme();
+        const allCards = tarot_json.cards;
+        const all_formations = tarot_json.formations;
+
+        const formation_name = Random.pick(Object.keys(all_formations)) as keyof typeof all_formations;
+        const formation = all_formations[formation_name];
+
+        await session.send(`启用 ${formation_name}，让命运之轮开始转动...`);
+
+        const { cards_num, is_cut } = formation;
+
+        const cards_indo_list = await this.random_cards(allCards, theme, cards_num);
+        const representations = Random.pick(formation.representations);
+
+        const chain = [];
+        for (let i = 0; i < cards_indo_list.length; i++) {
+            const msg_header = `${is_cut && i === cards_num - 1 ? "切牌" : `第${i + 1}张牌`}「${
+                representations[i]
+            }」\n`;
+            const msg_body = await this.get_text_and_image(theme, cards_indo_list[i], true);
+            if (!this.is_chain_reply || !session.onebot) {
+                session.send(msg_header + msg_body);
+            } else {
+                chain.push(msg_header + msg_body);
+            }
+        }
+
+        if (this.is_chain_reply && session.onebot) {
+            const nodeList = chain.map((text) => ({
+                type: "node",
+                data: {
+                    user_id: session.bot?.userId,
+                    nickname: session.username || "你",
+                    content: text
+                }
+            }));
+            if (session.guildId) {
+                await session.onebot.sendGroupForwardMsg(session.guildId, nodeList);
+            } else if (session.userId) {
+                await session.onebot.sendPrivateForwardMsg(session.userId, nodeList);
+            }
+        } else {
+            return;
+        }
+    }
+
     async onetime_divine() {
         const theme = await this.pick_theme();
         const allCards = tarot_json.cards;
@@ -44,7 +91,7 @@ export default class Tarot {
         return "回应是" + body;
     }
 
-    private async get_text_and_image(theme: string, cardInfo: CardInfo) {
+    private async get_text_and_image(theme: string, cardInfo: CardInfo, useCQ = false) {
         const { type, pic, name_cn, meaning } = cardInfo;
 
         if (!type || !pic || !name_cn || !meaning?.up || !meaning?.down) {
@@ -63,7 +110,14 @@ export default class Tarot {
         const isReversed = Math.random() < 0.5;
         const meaningText = isReversed ? meaning.down : meaning.up;
         const position = isReversed ? "逆位" : "正位";
-
+        if (useCQ) {
+            return (
+                `「${name_cn}${position}」「${meaningText}」\n` +
+                "[CQ:image,file=base64://" +
+                imgBuffer.toString("base64") +
+                "]"
+            );
+        }
         return (
             `「${name_cn}${position}」「${meaningText}」\n` +
             h.image("data:image/png;base64," + imgBuffer.toString("base64"))
