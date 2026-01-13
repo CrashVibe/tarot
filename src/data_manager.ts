@@ -43,7 +43,7 @@ export default class Tarot {
         const formation_name = Random.pick(Object.keys(all_formations)) as keyof typeof all_formations;
         const formation = all_formations[formation_name];
 
-        await session.send(`启用 ${formation_name}，让命运之轮开始转动...`);
+        await session.send(h.quote(session.messageId) + `启用 ${formation_name}，让命运之轮开始转动...`);
 
         const { cards_num, is_cut } = formation;
 
@@ -57,7 +57,7 @@ export default class Tarot {
             }」\n`;
             const msg_body = await this.get_text_and_image(theme, cards_indo_list[i], true);
             if (!this.is_chain_reply || !session.onebot) {
-                session.send(msg_header + msg_body);
+                session.send(h.quote(session.messageId) + msg_header + msg_body);
             } else {
                 chain.push(msg_header + msg_body);
             }
@@ -111,6 +111,7 @@ export default class Tarot {
         const meaningText = isReversed ? meaning.down : meaning.up;
         const position = isReversed ? "逆位" : "正位";
         if (useCQ) {
+            // 用于消息合并时
             return (
                 `「${name_cn}${position}」「${meaningText}」\n` +
                 "[CQ:image,file=base64://" +

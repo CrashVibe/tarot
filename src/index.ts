@@ -1,4 +1,4 @@
-import { Context, Schema } from "koishi";
+import { Context, h, Schema } from "koishi";
 import Tarot from "./data_manager";
 
 export const name = "tarot";
@@ -12,12 +12,15 @@ export const Config: Schema<Config> = Schema.object({
 });
 
 export async function apply(ctx: Context, config: Config) {
-    ctx.command("塔罗牌", "抽取一张塔罗牌").action(async () => {
+    ctx.command("塔罗牌", "抽取一张塔罗牌").action(async ({ session }) => {
+        if (!session) {
+            throw new Error("无法获取用户信息");
+        }
         const tarot_manager = new Tarot(config);
-        return await tarot_manager.onetime_divine();
+        return h.quote(session.messageId) + (await tarot_manager.onetime_divine());
     });
     ctx.command("占卜", "进行一次塔罗牌占卜").action(async ({ session }) => {
-        if (!session || !session.userId) {
+        if (!session) {
             throw new Error("无法获取用户信息");
         }
         const tarot_manager = new Tarot(config);
